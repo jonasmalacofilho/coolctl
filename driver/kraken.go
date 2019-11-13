@@ -1,4 +1,4 @@
-package nzxt
+package driver
 
 import (
 	"context"
@@ -38,8 +38,8 @@ type KrakenDriver struct {
 	*gousb.InEndpoint
 }
 
-// NewDriver creates a new USB Context instance & returns a new KrakenDriver
-func NewDriver() *KrakenDriver {
+// NewKrakenDriver creates a new USB Context instance & returns a new KrakenDriver
+func NewKrakenDriver() *KrakenDriver {
 	flag.Parse()
 	ctx := gousb.NewContext()
 	ctx.Debug(*debug)

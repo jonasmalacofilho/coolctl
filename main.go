@@ -1,9 +1,9 @@
 package main
 
-import "github.com/arkste/coolctl/nzxt"
+import "github.com/arkste/coolctl/driver"
 
 func main() {
-	kraken := nzxt.NewDriver()
+	kraken := driver.NewKrakenDriver()
 	kraken.Connect()
 	defer kraken.Disconnect()
 
