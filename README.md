@@ -5,6 +5,7 @@ This is just a Playground for my gousb-Adventures (https://github.com/google/gou
 Currently only reading the status of my NZXT Kraken X62 AIO:
 
 ```
+$ make dep
 $ go run main.go
 ============================================
   Liquid temperature 32.7 °C
