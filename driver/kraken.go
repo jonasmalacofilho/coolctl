@@ -11,7 +11,7 @@ import (
 
 const (
 	productID = 0x170e // Kraken X (X42, X52, X62 or X72)
-	vendorID = 0x1e71 // NZXT
+	vendorID  = 0x1e71 // NZXT
 )
 
 var (
