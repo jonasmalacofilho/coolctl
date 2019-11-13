@@ -51,8 +51,8 @@ func NewKrakenDriver() *KrakenDriver {
 	}
 }
 
-// Connect connects to the USB device
-func (d *KrakenDriver) Connect() {
+// connect connects to the USB device
+func (d *KrakenDriver) connect() {
 	dev, err := d.Context.OpenDeviceWithVIDPID(d.VendorID, d.ProductID)
 	if err != nil {
 		log.Fatalf("could not open a device: %v", err)
@@ -77,12 +77,15 @@ func (d *KrakenDriver) Connect() {
 	}
 }
 
-// Disconnect closes the USB Context instance
-func (d *KrakenDriver) Disconnect() {
+// disconnect closes the USB Context instance
+func (d *KrakenDriver) disconnect() {
 	d.Context.Close()
 }
 
 func (d *KrakenDriver) Read() []byte {
+	d.connect()
+	defer d.disconnect()
+
 	var rdr contextReader = d.InEndpoint
 	if *bufSize > 1 {
 		log.Print("Creating buffer...")
