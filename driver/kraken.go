@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"image/color"
 	"log"
 
 	"github.com/google/gousb"
@@ -12,17 +13,47 @@ import (
 const (
 	productID = 0x170e // Kraken X (X42, X52, X62 or X72)
 	vendorID  = 0x1e71 // NZXT
+
+	readEndpoint = 1
+	readLength   = 64
+
+	writeEndpoint = 1
+	writeLength   = 65
 )
 
 var (
 	config    = flag.Int("config", 1, "Configuration number to use with the device.")
 	iface     = flag.Int("interface", 0, "Interface to use on the device.")
 	alternate = flag.Int("alternate", 0, "Alternate setting to use on the interface.")
-	endpoint  = flag.Int("endpoint", 1, "Endpoint number to which to connect (without the leading 0x8).")
 	debug     = flag.Int("debug", 0, "Debug level for libusb.")
-	size      = flag.Int("read_size", 64, "Number of bytes of data to read in a single transaction.")
 	bufSize   = flag.Int("buffer_size", 0, "Number of buffer transfers, for data prefetching.")
 	timeout   = flag.Duration("timeout", 0, "Timeout for the command. 0 means infinite.")
+
+	speedChannels = map[string]int{
+		"fan":  0x80, // 25, 100
+		"pump": 0xc0, // 50, 100
+	}
+
+	colorChannels = map[string]int{
+		"sync": 0x0,
+		"logo": 0x1,
+		"ring": 0x2,
+	}
+
+	colorModes = map[string][]int{
+		// byte3/mode, byte2/reverse, byte4/modifier, min colors, max colors, only ring (0=no, 1=yes)
+		"off":     []int{0x00, 0x00, 0x00, 0, 0, 0},
+		"fixed":   []int{0x00, 0x00, 0x00, 1, 1, 0},
+		"loading": []int{0x0a, 0x00, 0x00, 1, 1, 1},
+	}
+
+	animationSpeeds = map[string]int{
+		"slowest": 0x0,
+		"slower":  0x1,
+		"normal":  0x2,
+		"faster":  0x3,
+		"fastest": 0x4,
+	}
 )
 
 type contextReader interface {
@@ -36,6 +67,7 @@ type KrakenDriver struct {
 	*gousb.Context
 	*gousb.Interface
 	*gousb.InEndpoint
+	*gousb.OutEndpoint
 }
 
 // NewKrakenDriver creates a new USB Context instance & returns a new KrakenDriver
@@ -51,8 +83,8 @@ func NewKrakenDriver() *KrakenDriver {
 	}
 }
 
-// connect connects to the USB device
-func (d *KrakenDriver) connect() {
+// Connect connects to the USB device
+func (d *KrakenDriver) Connect() {
 	dev, err := d.Context.OpenDeviceWithVIDPID(d.VendorID, d.ProductID)
 	if err != nil {
 		log.Fatalf("could not open a device: %v", err)
@@ -71,25 +103,23 @@ func (d *KrakenDriver) connect() {
 		log.Fatalf("cfg.Interface(%d, %d): %v", *iface, *alternate, err)
 	}
 
-	d.InEndpoint, err = d.Interface.InEndpoint(*endpoint)
+	d.InEndpoint, err = d.Interface.InEndpoint(readEndpoint)
 	if err != nil {
 		log.Fatalf("dev.InEndpoint(): %s", err)
 	}
+
+	d.OutEndpoint, err = d.Interface.OutEndpoint(writeEndpoint)
+	if err != nil {
+		log.Fatalf("dev.OutEndpoint(): %s", err)
+	}
 }
 
-// disconnect closes the USB Context instance
-func (d *KrakenDriver) disconnect() {
-	d.Context.Close()
-}
-
+// Read reads from the USB device
 func (d *KrakenDriver) Read() []byte {
-	d.connect()
-	defer d.disconnect()
-
 	var rdr contextReader = d.InEndpoint
 	if *bufSize > 1 {
-		log.Print("Creating buffer...")
-		s, err := d.InEndpoint.NewStream(*size, *bufSize)
+		log.Print("creating buffer...")
+		s, err := d.InEndpoint.NewStream(readLength, *bufSize)
 		if err != nil {
 			log.Fatalf("ep.NewStream(): %v", err)
 		}
@@ -103,13 +133,23 @@ func (d *KrakenDriver) Read() []byte {
 		opCtx, done = context.WithTimeout(opCtx, *timeout)
 		defer done()
 	}
-	msg := make([]byte, *size)
+	msg := make([]byte, readLength)
 	_, err := rdr.ReadContext(opCtx, msg)
 	if err != nil {
-		log.Fatalf("Reading from device failed: %v", err)
+		log.Fatalf("reading from device failed: %v", err)
 	}
 
 	return msg
+}
+
+// Write writes to the USB device
+func (d *KrakenDriver) Write(data []byte) {
+	padding := make([]byte, writeLength-len(data))
+	data = append(data, padding...)
+	_, err := d.OutEndpoint.Write(data)
+	if err != nil {
+		log.Fatalf("could not write data %d to device", data)
+	}
 }
 
 // GetStatus returns the current device status
@@ -127,4 +167,69 @@ func (d *KrakenDriver) GetStatus() {
 	fmt.Println(fmt.Sprintf("  Pump speed %d rpm", pumpSpeed))
 	fmt.Println(fmt.Sprintf("  Firmware Version: %s", firmwareVersion))
 	fmt.Println("============================================")
+}
+
+// SetColor sets the color of a channel & mode
+func (d *KrakenDriver) SetColor(channel, mode string, colors []string) {
+	colorChannel, ok := colorChannels[channel]
+	if !ok {
+		log.Fatalf("channel %s not found", channel)
+	}
+
+	colorMode, ok := colorModes[mode]
+	if !ok {
+		log.Fatalf("mode %s not found", mode)
+	}
+
+	mval, mod2, mod4, mincolors, maxcolors, ringonly := colorMode[0], colorMode[1], colorMode[2], colorMode[3], colorMode[4], colorMode[5]
+	if ringonly == 1 && channel != "ring" {
+		log.Fatalf("mode %s unsupported with channel %s", mode, channel)
+	}
+
+	steps := generateSteps(paletteFromSlice(colors), mincolors, maxcolors, mode, ringonly)
+	logoRed, logoGreen, logoBlue, _ := steps[0].RGBA()
+
+	var buf []byte
+	buf = append(buf, 0x2)
+	buf = append(buf, 0x4c)
+	buf = append(buf, byte(mod2|colorChannel))
+	buf = append(buf, byte(mval))
+	buf = append(buf, byte(animationSpeeds["normal"]|0<<5|mod4))
+	buf = append(buf, byte(logoGreen))
+	buf = append(buf, byte(logoRed))
+	buf = append(buf, byte(logoBlue))
+
+	for _, leds := range steps[1:8] {
+		red, green, blue, _ := leds.RGBA()
+		buf = append(buf, byte(red))
+		buf = append(buf, byte(green))
+		buf = append(buf, byte(blue))
+	}
+
+	d.Write(buf)
+}
+
+func generateSteps(colors color.Palette, mincolors, maxcolors int, mode string, ringonly int) color.Palette {
+	if len(colors) < mincolors {
+		log.Fatalf("not enough colors for mode %s, at least %d required", mode, mincolors)
+	} else if maxcolors == 0 {
+		if len(colors) > 0 {
+			log.Printf("too many colors for mode %s, none needed", mode)
+			colors = color.Palette{color.RGBA{0, 0, 0, 1}} // discard the input but ensure at least one step
+		}
+	} else if len(colors) > maxcolors {
+		log.Printf("too many colors for mode %s, dropping to %d", mode, maxcolors)
+		colors = colors[:maxcolors]
+	}
+
+	if len(colors) == 0 {
+		colors = color.Palette{color.RGBA{0, 0, 0, 1}}
+	}
+
+	var steps color.Palette
+	for i := 0; i < 9; i++ {
+		steps = append(steps, colors[0])
+	}
+
+	return steps
 }
