@@ -11,5 +11,6 @@ func main() {
 	// kraken.SetColor("logo", "pulse", []string{"FF0000"})
 	// kraken.SetColor("sync", "super-fixed", []string{"FF0000", "00FF00", "0000FF"})
 
-	kraken.SetColor("sync", "fading", []string{"FF0000", "00FF00", "0000FF"})
+	kraken.SetColor("logo", "off", nil)
+	kraken.SetColor("ring", "fading", []string{"FF0000", "00FF00", "0000FF"})
 }

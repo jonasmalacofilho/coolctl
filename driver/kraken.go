@@ -45,34 +45,34 @@ var (
 
 	colorModes = map[string][]int{
 		// byte3/mode, byte2/reverse, byte4/modifier, min colors, max colors, only ring (0=no, 1=yes)
-		"off":                          []int{0x00, 0x00, 0x00, 0, 0, 0},
-		"fixed":                        []int{0x00, 0x00, 0x00, 1, 1, 0},
-		"super-fixed":                  []int{0x00, 0x00, 0x00, 1, 9, 0}, // independent logo + ring leds
-		"fading":                       []int{0x01, 0x00, 0x00, 2, 8, 0},
-		"spectrum-wave":                []int{0x02, 0x00, 0x00, 0, 0, 0},
-		"backwards-spectrum-wave":      []int{0x02, 0x10, 0x00, 0, 0, 0},
-		"marquee-3":                    []int{0x03, 0x00, 0x00, 1, 1, 1},
-		"marquee-4":                    []int{0x03, 0x00, 0x08, 1, 1, 1},
-		"marquee-5":                    []int{0x03, 0x00, 0x10, 1, 1, 1},
-		"marquee-6":                    []int{0x03, 0x00, 0x18, 1, 1, 1},
-		"backwards-marquee-3":          []int{0x03, 0x10, 0x00, 1, 1, 1},
-		"backwards-marquee-4":          []int{0x03, 0x10, 0x08, 1, 1, 1},
-		"backwards-marquee-5":          []int{0x03, 0x10, 0x10, 1, 1, 1},
-		"backwards-marquee-6":          []int{0x03, 0x10, 0x18, 1, 1, 1},
-		"covering-marquee":             []int{0x04, 0x00, 0x00, 1, 8, 1},
-		"covering-backwards-marquee":   []int{0x04, 0x10, 0x00, 1, 8, 1},
-		"alternating":                  []int{0x05, 0x00, 0x00, 2, 2, 1},
-		"moving-alternating":           []int{0x05, 0x08, 0x00, 2, 2, 1},
-		"backwards-moving-alternating": []int{0x05, 0x18, 0x00, 2, 2, 1},
-		"breathing":                    []int{0x06, 0x00, 0x00, 1, 8, 0}, // colors for each step
-		"super-breathing":              []int{0x06, 0x00, 0x00, 1, 9, 0}, // one step, independent logo + ring leds
-		"pulse":                        []int{0x07, 0x00, 0x00, 1, 8, 0},
-		"tai-chi":                      []int{0x08, 0x00, 0x00, 2, 2, 1},
-		"water-cooler":                 []int{0x09, 0x00, 0x00, 0, 0, 1},
-		"loading":                      []int{0x0a, 0x00, 0x00, 1, 1, 1},
-		"wings":                        []int{0x0c, 0x00, 0x00, 1, 1, 1},
-		"super-wave":                   []int{0x0d, 0x00, 0x00, 1, 8, 1}, // independent ring leds
-		"backwards-super-wave":         []int{0x0d, 0x10, 0x00, 1, 8, 1}, // independent ring leds
+		"off":                          {0x00, 0x00, 0x00, 0, 0, 0},
+		"fixed":                        {0x00, 0x00, 0x00, 1, 1, 0},
+		"super-fixed":                  {0x00, 0x00, 0x00, 1, 9, 0}, // independent logo + ring leds
+		"fading":                       {0x01, 0x00, 0x00, 2, 8, 0},
+		"spectrum-wave":                {0x02, 0x00, 0x00, 0, 0, 0},
+		"backwards-spectrum-wave":      {0x02, 0x10, 0x00, 0, 0, 0},
+		"marquee-3":                    {0x03, 0x00, 0x00, 1, 1, 1},
+		"marquee-4":                    {0x03, 0x00, 0x08, 1, 1, 1},
+		"marquee-5":                    {0x03, 0x00, 0x10, 1, 1, 1},
+		"marquee-6":                    {0x03, 0x00, 0x18, 1, 1, 1},
+		"backwards-marquee-3":          {0x03, 0x10, 0x00, 1, 1, 1},
+		"backwards-marquee-4":          {0x03, 0x10, 0x08, 1, 1, 1},
+		"backwards-marquee-5":          {0x03, 0x10, 0x10, 1, 1, 1},
+		"backwards-marquee-6":          {0x03, 0x10, 0x18, 1, 1, 1},
+		"covering-marquee":             {0x04, 0x00, 0x00, 1, 8, 1},
+		"covering-backwards-marquee":   {0x04, 0x10, 0x00, 1, 8, 1},
+		"alternating":                  {0x05, 0x00, 0x00, 2, 2, 1},
+		"moving-alternating":           {0x05, 0x08, 0x00, 2, 2, 1},
+		"backwards-moving-alternating": {0x05, 0x18, 0x00, 2, 2, 1},
+		"breathing":                    {0x06, 0x00, 0x00, 1, 8, 0}, // colors for each step
+		"super-breathing":              {0x06, 0x00, 0x00, 1, 9, 0}, // one step, independent logo + ring leds
+		"pulse":                        {0x07, 0x00, 0x00, 1, 8, 0},
+		"tai-chi":                      {0x08, 0x00, 0x00, 2, 2, 1},
+		"water-cooler":                 {0x09, 0x00, 0x00, 0, 0, 1},
+		"loading":                      {0x0a, 0x00, 0x00, 1, 1, 1},
+		"wings":                        {0x0c, 0x00, 0x00, 1, 1, 1},
+		"super-wave":                   {0x0d, 0x00, 0x00, 1, 8, 1}, // independent ring leds
+		"backwards-super-wave":         {0x0d, 0x10, 0x00, 1, 8, 1}, // independent ring leds
 	}
 
 	animationSpeeds = map[string]int{
