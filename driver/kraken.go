@@ -20,6 +20,8 @@ const (
 
 	writeEndpoint = 1
 	writeLength   = 65
+
+	totalLEDs = 9
 )
 
 var (
@@ -255,20 +257,20 @@ func generateSteps(colors color.Palette, mincolors, maxcolors int, mode string, 
 	}
 
 	var steps []color.Palette
-	for colorNum := range colors {
-		var colorPalette color.Palette
-		if !strings.Contains(mode, "super") {
-			for i := 0; i < 9; i++ {
+
+	if !strings.Contains(mode, "super") {
+		for colorNum := range colors {
+			var colorPalette color.Palette
+			for i := 0; i < totalLEDs; i++ {
 				colorPalette = append(colorPalette, colors[colorNum])
 			}
-		} else if ringonly == 1 {
-			colorPalette = append(colorPalette, color.RGBA{0, 0, 0, 1})
-			colorPalette = append(colorPalette, colors[colorNum])
-		} else {
-			colorPalette = append(colorPalette, colors[colorNum])
+			steps = append(steps, colorPalette)
 		}
-
-		steps = append(steps, colorPalette)
+	} else if ringonly == 1 {
+		steps = append(steps, color.Palette{color.RGBA{0, 0, 0, 1}})
+		steps = append(steps, colors)
+	} else {
+		steps = append(steps, colors)
 	}
 
 	return steps
