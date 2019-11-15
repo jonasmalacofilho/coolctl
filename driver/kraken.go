@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"strings"
 
 	"github.com/google/gousb"
 )
@@ -211,30 +212,32 @@ func (d *KrakenDriver) SetColor(channel, mode string, colors []string) {
 		log.Fatalf("mode %s unsupported with channel %s", mode, channel)
 	}
 
-	steps := generateSteps(paletteFromSlice(colors), mincolors, maxcolors, mode, ringonly)
-	logoRed, logoGreen, logoBlue, _ := steps[0].RGBA()
+	steps := generateSteps(paletteFromColors(colors), mincolors, maxcolors, mode, ringonly)
 
-	var buf []byte
-	buf = append(buf, 0x2)
-	buf = append(buf, 0x4c)
-	buf = append(buf, byte(mod2|colorChannel))
-	buf = append(buf, byte(mval))
-	buf = append(buf, byte(animationSpeeds["normal"]|0<<5|mod4))
-	buf = append(buf, byte(logoGreen))
-	buf = append(buf, byte(logoRed))
-	buf = append(buf, byte(logoBlue))
+	for seq, step := range steps {
+		logoRed, logoGreen, logoBlue, _ := step[0].RGBA()
 
-	for _, leds := range steps[1:8] {
-		red, green, blue, _ := leds.RGBA()
-		buf = append(buf, byte(red))
-		buf = append(buf, byte(green))
-		buf = append(buf, byte(blue))
+		var buf []byte
+		buf = append(buf, 0x2)
+		buf = append(buf, 0x4c)
+		buf = append(buf, byte(mod2|colorChannel))
+		buf = append(buf, byte(mval))
+		buf = append(buf, byte(animationSpeeds["normal"]|seq<<5|mod4))
+		buf = append(buf, byte(logoGreen))
+		buf = append(buf, byte(logoRed))
+		buf = append(buf, byte(logoBlue))
+		for _, leds := range step[1:] {
+			red, green, blue, _ := leds.RGBA()
+			buf = append(buf, byte(red))
+			buf = append(buf, byte(green))
+			buf = append(buf, byte(blue))
+		}
+
+		d.Write(buf)
 	}
-
-	d.Write(buf)
 }
 
-func generateSteps(colors color.Palette, mincolors, maxcolors int, mode string, ringonly int) color.Palette {
+func generateSteps(colors color.Palette, mincolors, maxcolors int, mode string, ringonly int) []color.Palette {
 	if len(colors) < mincolors {
 		log.Fatalf("not enough colors for mode %s, at least %d required", mode, mincolors)
 	} else if maxcolors == 0 {
@@ -251,9 +254,21 @@ func generateSteps(colors color.Palette, mincolors, maxcolors int, mode string, 
 		colors = color.Palette{color.RGBA{0, 0, 0, 1}}
 	}
 
-	var steps color.Palette
-	for i := 0; i < 9; i++ {
-		steps = append(steps, colors[0])
+	var steps []color.Palette
+	for colorNum := range colors {
+		var colorPalette color.Palette
+		if !strings.Contains(mode, "super") {
+			for i := 0; i < 9; i++ {
+				colorPalette = append(colorPalette, colors[colorNum])
+			}
+		} else if ringonly == 1 {
+			colorPalette = append(colorPalette, color.RGBA{0, 0, 0, 1})
+			colorPalette = append(colorPalette, colors[colorNum])
+		} else {
+			colorPalette = append(colorPalette, colors[colorNum])
+		}
+
+		steps = append(steps, colorPalette)
 	}
 
 	return steps

@@ -15,7 +15,7 @@ func colorFromHexString(c string) color.RGBA {
 	return color.RGBA{b[0], b[1], b[2], 1}
 }
 
-func paletteFromSlice(colors []string) color.Palette {
+func paletteFromColors(colors []string) color.Palette {
 	var palette color.Palette
 	if colors != nil {
 		for _, c := range colors {
