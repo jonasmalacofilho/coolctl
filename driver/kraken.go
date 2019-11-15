@@ -115,7 +115,7 @@ func NewKrakenDriver() *KrakenDriver {
 func (d *KrakenDriver) Connect() {
 	dev, err := d.Context.OpenDeviceWithVIDPID(d.VendorID, d.ProductID)
 	if err != nil {
-		log.Fatalf("could not open a device: %v", err)
+		log.Fatal("NXZT Kraken X (X42, X52, X62 or X72) not found")
 	}
 	defer dev.Close()
 

@@ -5,7 +5,7 @@ This is just a Playground for my gousb-Adventures (https://github.com/google/gou
 Currently only reading the status of my NZXT Kraken X62 AIO:
 
 ```
-$ sudo apt-get install libusb-1.0
+$ sudo apt-get install libusb-1.0 pkg-config
 $ git clone https://github.com/arkste/coolctl.git
 $ cd coolctl
 $ make dep
