@@ -20,7 +20,7 @@ func colorFromHexString(c string) (*color.RGBA, error) {
 		return nil, err
 	}
 
-	return &color.RGBA{b[0], b[1], b[2], 1}, nil
+	return &color.RGBA{R: b[0], G: b[1], B: b[2], A: 1}, nil
 }
 
 func paletteFromColors(colors []string) (*color.Palette, error) {
@@ -44,7 +44,7 @@ func generateSteps(colors color.Palette, mincolors, maxcolors int, mode string, 
 	} else if maxcolors == 0 {
 		if len(colors) > 0 {
 			log.Printf("too many colors for mode %s, none needed", mode)
-			colors = color.Palette{color.RGBA{0, 0, 0, 1}} // discard the input but ensure at least one step
+			colors = color.Palette{color.RGBA{A: 1}} // discard the input but ensure at least one step
 		}
 	} else if len(colors) > maxcolors {
 		log.Printf("too many colors for mode %s, dropping to %d", mode, maxcolors)
@@ -52,7 +52,7 @@ func generateSteps(colors color.Palette, mincolors, maxcolors int, mode string, 
 	}
 
 	if len(colors) == 0 {
-		colors = color.Palette{color.RGBA{0, 0, 0, 1}}
+		colors = color.Palette{color.RGBA{A: 1}}
 	}
 
 	var steps []color.Palette
@@ -66,7 +66,7 @@ func generateSteps(colors color.Palette, mincolors, maxcolors int, mode string, 
 			steps = append(steps, colorPalette)
 		}
 	} else if ringonly == 1 {
-		steps = append(steps, color.Palette{color.RGBA{0, 0, 0, 1}})
+		steps = append(steps, color.Palette{color.RGBA{A: 1}})
 		steps = append(steps, colors)
 	} else {
 		steps = append(steps, colors)

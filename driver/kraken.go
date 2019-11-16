@@ -121,7 +121,10 @@ func (d *KrakenDriver) Connect() {
 	}
 	defer dev.Close()
 
-	dev.SetAutoDetach(true)
+	err = dev.SetAutoDetach(true)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	cfg, err := dev.Config(*config)
 	if err != nil {
