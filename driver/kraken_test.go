@@ -12,6 +12,7 @@ var supportCoolingProfilesTest = []struct {
 	out bool
 }{
 	{[]int{2, 9, 9}, false},
+	{[]int{2, 0, 0}, false},
 	{[]int{3, 0, 0}, true},
 	{[]int{6, 0, 0}, true},
 	{[]int{6, 0, 2}, true},
