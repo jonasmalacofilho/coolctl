@@ -4,10 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/google/gousb"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -103,6 +103,7 @@ func NewKrakenDriver() *KrakenDriver {
 	flag.Parse()
 	ctx := gousb.NewContext()
 	ctx.Debug(*debug)
+	log.SetLevel(log.Level(*debug))
 
 	return &KrakenDriver{
 		ProductID: productID,
@@ -166,6 +167,8 @@ func (d *KrakenDriver) Read() []byte {
 	if err != nil {
 		log.Fatalf("reading from device failed: %v", err)
 	}
+	log.Infof("reading: %d", msg)
+	log.Infof("reading: % 02x", msg)
 
 	return msg
 }
@@ -173,6 +176,8 @@ func (d *KrakenDriver) Read() []byte {
 // Write writes to the USB device
 func (d *KrakenDriver) Write(data []byte) {
 	padding := make([]byte, writeLength-len(data))
+	log.Infof("writing: %d", data)
+	log.Infof("writing: % 02x", data)
 	data = append(data, padding...)
 	_, err := d.OutEndpoint.Write(data)
 	if err != nil {
@@ -224,20 +229,21 @@ func (d *KrakenDriver) SetColor(channel, mode string, colors []string) {
 	for seq, step := range steps {
 		logoRed, logoGreen, logoBlue, _ := step[0].RGBA()
 
-		var buf []byte
-		buf = append(buf, 0x2)
-		buf = append(buf, 0x4c)
-		buf = append(buf, byte(mod2|colorChannel))
-		buf = append(buf, byte(mval))
-		buf = append(buf, byte(animationSpeeds["normal"]|seq<<5|mod4))
-		buf = append(buf, byte(logoGreen))
-		buf = append(buf, byte(logoRed))
-		buf = append(buf, byte(logoBlue))
+		buf := []byte{
+			0x2,
+			0x4c,
+			byte(mod2 | colorChannel),
+			byte(mval),
+			byte(animationSpeeds["normal"] | seq<<5 | mod4),
+			byte(logoGreen),
+			byte(logoRed),
+			byte(logoBlue),
+		}
+
 		for _, leds := range step[1:] {
 			red, green, blue, _ := leds.RGBA()
-			buf = append(buf, byte(red))
-			buf = append(buf, byte(green))
-			buf = append(buf, byte(blue))
+			colors := []byte{byte(red), byte(green), byte(blue)}
+			buf = append(buf, colors...)
 		}
 
 		d.Write(buf)
@@ -251,9 +257,7 @@ func (d *KrakenDriver) SetSpeed(channel, profile string) {
 		log.Fatalf("channel %s not found", channel)
 	}
 
-	cbase, dmin, dmax := speedChannel[0], speedChannel[1], speedChannel[2]
-	p := interpolateProfile(normalizeProfile(parseProfile(profile), criticalTemp))
-
+	cbase, dmin, dmax, p := speedChannel[0], speedChannel[1], speedChannel[2], interpolateProfile(normalizeProfile(parseProfile(profile), criticalTemp))
 	for i, profile := range p {
 		duty := profile[1]
 
@@ -263,13 +267,6 @@ func (d *KrakenDriver) SetSpeed(channel, profile string) {
 			duty = dmax
 		}
 
-		var buf []byte
-		buf = append(buf, 0x2)
-		buf = append(buf, 0x4d)
-		buf = append(buf, byte(cbase+i))
-		buf = append(buf, byte(profile[0]))
-		buf = append(buf, byte(duty))
-
-		d.Write(buf)
+		d.Write([]byte{0x2, 0x4d, byte(cbase + i), byte(profile[0]), byte(duty)})
 	}
 }
