@@ -5,9 +5,9 @@
 [![Golang](https://img.shields.io/badge/Go-1.13-blue.svg)](https://golang.org)
 ![Linux](https://img.shields.io/badge/Supports-Linux-green.svg)
 
-This is just a Playground for my gousb-Adventures (https://github.com/google/gousb).
+coolctl (cooler control) is a (soon) cross-platform driver for NXZT Kraken X (X42, X52, X62 or X72).
 
-Currently only reading the status of my NZXT Kraken X62 AIO:
+Currently still WIP.
 
 ## Installation
 
@@ -43,6 +43,15 @@ $ go run main.go color ring fading FF0000 00FF00 0000FF
 ## Change Speed
 
 ```bash
+$ go run main.go speed pump 20 60  35 60  55 100  60 100
+$ go run main.go speed fan 20 25  35 25  50 55  60 100
+```
+
+## Full Silent Example
+
+```bash
+$ go run main.go color logo off
+$ go run main.go color ring fading FF0000 00FF00 0000FF
 $ go run main.go speed pump 20 60  35 60  55 100  60 100
 $ go run main.go speed fan 20 25  35 25  50 55  60 100
 ```
