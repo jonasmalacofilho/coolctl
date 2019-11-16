@@ -1,7 +1,7 @@
 # coolctl
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/arkste/coolctl)](https://goreportcard.com/report/github.com/arkste/coolctl)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/arkste/elsi/master/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/arkste/coolctl/master/LICENSE)
 [![Golang](https://img.shields.io/badge/Go-1.13-blue.svg)](https://golang.org)
 ![Linux](https://img.shields.io/badge/Supports-Linux-green.svg)
 
