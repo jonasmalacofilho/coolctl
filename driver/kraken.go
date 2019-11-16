@@ -2,9 +2,9 @@ package driver
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
@@ -24,12 +24,14 @@ const (
 )
 
 var (
-	config    = flag.Int("config", 1, "Configuration number to use with the device.")
-	iface     = flag.Int("interface", 0, "Interface to use on the device.")
-	alternate = flag.Int("alternate", 0, "Alternate setting to use on the interface.")
-	debug     = flag.Int("debug", 1, "Debug level for libusb.")
-	bufSize   = flag.Int("buffer_size", 0, "Number of buffer transfers, for data prefetching.")
-	timeout   = flag.Duration("timeout", 0, "Timeout for the command. 0 means infinite.")
+	// Debug is the debug level, 0 = no output, 10 = more output
+	Debug int
+
+	config    = 1
+	iface     = 0
+	alternate = 0
+	bufSize   = 0
+	timeout   = time.Duration(0)
 
 	speedChannels = map[string][]int{
 		"fan":  {0x80, 25, 100},
@@ -101,10 +103,9 @@ type KrakenDriver struct {
 
 // NewKrakenDriver creates a new USB Context instance & returns a new KrakenDriver
 func NewKrakenDriver() *KrakenDriver {
-	flag.Parse()
 	ctx := gousb.NewContext()
-	ctx.Debug(*debug)
-	log.SetLevel(log.Level(*debug))
+	ctx.Debug(Debug)
+	log.SetLevel(log.Level(Debug))
 
 	return &KrakenDriver{
 		ProductID: productID,
@@ -126,14 +127,14 @@ func (d *KrakenDriver) Connect() {
 		log.Fatal(err)
 	}
 
-	cfg, err := dev.Config(*config)
+	cfg, err := dev.Config(config)
 	if err != nil {
-		log.Fatalf("dev.Config(%d): %v", *config, err)
+		log.Fatalf("dev.Config(%d): %v", config, err)
 	}
 
-	d.Interface, err = cfg.Interface(*iface, *alternate)
+	d.Interface, err = cfg.Interface(iface, alternate)
 	if err != nil {
-		log.Fatalf("cfg.Interface(%d, %d): %v", *iface, *alternate, err)
+		log.Fatalf("cfg.Interface(%d, %d): %v", iface, alternate, err)
 	}
 
 	d.InEndpoint, err = d.Interface.InEndpoint(readEndpoint)
@@ -147,16 +148,16 @@ func (d *KrakenDriver) Connect() {
 	}
 }
 
-// GetStatus prints the current device readStatus
-func (d *KrakenDriver) GetStatus() {
-	temperature, fanSpeed, pumpSpeed, firmwareVersion := d.readStatus()
+// GetStatus reads & returns the current device status
+func (d *KrakenDriver) GetStatus() (string, uint64, uint64, string) {
+	msg := d.read()
 
-	fmt.Println("============================================")
-	fmt.Println(fmt.Sprintf("  Liquid temperature %s °C", temperature))
-	fmt.Println(fmt.Sprintf("  Fan speed %d rpm", fanSpeed))
-	fmt.Println(fmt.Sprintf("  Pump speed %d rpm", pumpSpeed))
-	fmt.Println(fmt.Sprintf("  Firmware Version: %s", firmwareVersion))
-	fmt.Println("============================================")
+	temperature := fmt.Sprintf("%d.%d", uint64(msg[1]), uint64(msg[2]))
+	fanSpeed := uint64(msg[3])<<8 | uint64(msg[4])
+	pumpSpeed := uint64(msg[5])<<8 | uint64(msg[6])
+	firmwareVersion := d.readFirmwareVersion(msg)
+
+	return temperature, fanSpeed, pumpSpeed, firmwareVersion
 }
 
 // SetColor sets the color of a channel & mode
@@ -241,7 +242,7 @@ func (d *KrakenDriver) SetFixedSpeed(channel, duty string) {
 // SupportsCoolingProfiles checks if the current firmware supports cooling profiles
 func (d *KrakenDriver) SupportsCoolingProfiles() bool {
 	if d.CoolingProfiles == false {
-		d.readStatus()
+		d.GetStatus()
 	}
 
 	return d.FirmwareVersion[0] >= 3 && d.FirmwareVersion[1] >= 0 && d.FirmwareVersion[2] >= 0
@@ -250,9 +251,9 @@ func (d *KrakenDriver) SupportsCoolingProfiles() bool {
 // read reads from the USB device
 func (d *KrakenDriver) read() []byte {
 	var rdr contextReader = d.InEndpoint
-	if *bufSize > 1 {
+	if bufSize > 1 {
 		log.Print("creating buffer...")
-		s, err := d.InEndpoint.NewStream(readLength, *bufSize)
+		s, err := d.InEndpoint.NewStream(readLength, bufSize)
 		if err != nil {
 			log.Fatalf("ep.NewStream(): %v", err)
 		}
@@ -261,9 +262,9 @@ func (d *KrakenDriver) read() []byte {
 	}
 
 	opCtx := context.Background()
-	if *timeout > 0 {
+	if timeout > 0 {
 		var done func()
-		opCtx, done = context.WithTimeout(opCtx, *timeout)
+		opCtx, done = context.WithTimeout(opCtx, timeout)
 		defer done()
 	}
 	msg := make([]byte, readLength)
@@ -296,18 +297,6 @@ func (d *KrakenDriver) readFirmwareVersion(msg []byte) string {
 	d.CoolingProfiles = true
 
 	return fmt.Sprintf("%d.%d.%d", fwMajor, fwMinor, fwPatch)
-}
-
-// readStatus reads & returns the current device status
-func (d *KrakenDriver) readStatus() (string, uint64, uint64, string) {
-	msg := d.read()
-
-	temperature := fmt.Sprintf("%d.%d", uint64(msg[1]), uint64(msg[2]))
-	fanSpeed := uint64(msg[3])<<8 | uint64(msg[4])
-	pumpSpeed := uint64(msg[5])<<8 | uint64(msg[6])
-	firmwareVersion := d.readFirmwareVersion(msg)
-
-	return temperature, fanSpeed, pumpSpeed, firmwareVersion
 }
 
 // setInstantSpeed sets a fixed speed per channel, but do not ensure persistence
