@@ -6,7 +6,7 @@ build:
 install:
 	@go install
 
-commit: dep lint vet format test
+commit: lint vet format test
 
 lint:
 	@golint -set_exit_status ./...
@@ -18,7 +18,14 @@ format:
 	@goimports -d .
 
 test:
-	@go test ./...
+	@go test ./... -v -coverprofile .coverage.txt
+	@go tool cover -func .coverage.txt
+
+coverage: test
+	@go tool cover -html=.coverage.txt
 
 dep:
 	@go get -v -d ./...
+
+cyclo:
+	@gocyclo -over 15 .

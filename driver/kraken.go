@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"image/color"
 	"log"
 	"strings"
 
@@ -15,13 +14,13 @@ const (
 	productID = 0x170e // Kraken X (X42, X52, X62 or X72)
 	vendorID  = 0x1e71 // NZXT
 
-	readEndpoint = 1
-	readLength   = 64
-
+	readEndpoint  = 1
+	readLength    = 64
 	writeEndpoint = 1
 	writeLength   = 65
 
-	totalLEDs = 9
+	totalLEDs    = 9
+	criticalTemp = 60
 )
 
 var (
@@ -32,9 +31,9 @@ var (
 	bufSize   = flag.Int("buffer_size", 0, "Number of buffer transfers, for data prefetching.")
 	timeout   = flag.Duration("timeout", 0, "Timeout for the command. 0 means infinite.")
 
-	speedChannels = map[string]int{
-		"fan":  0x80, // 25, 100
-		"pump": 0xc0, // 50, 100
+	speedChannels = map[string][]int{
+		"fan":  {0x80, 25, 100},
+		"pump": {0xc0, 50, 100},
 	}
 
 	colorChannels = map[string]int{
@@ -90,8 +89,9 @@ type contextReader interface {
 
 // KrakenDriver holds all driver relevant informations
 type KrakenDriver struct {
-	ProductID gousb.ID
-	VendorID  gousb.ID
+	ProductID       gousb.ID
+	VendorID        gousb.ID
+	FirmwareVersion []string
 	*gousb.Context
 	*gousb.Interface
 	*gousb.InEndpoint
@@ -188,6 +188,7 @@ func (d *KrakenDriver) GetStatus() {
 	fanSpeed := uint64(msg[3])<<8 | uint64(msg[4])
 	pumpSpeed := uint64(msg[5])<<8 | uint64(msg[6])
 	firmwareVersion := fmt.Sprintf("%d.%d.%d", uint64(msg[0xb]), uint64(msg[0xc])<<8|uint64(msg[0xd]), uint64(msg[0xe]))
+	d.FirmwareVersion = strings.Split(firmwareVersion, ".")
 
 	fmt.Println("============================================")
 	fmt.Println(fmt.Sprintf("  Liquid temperature %s °C", temperature))
@@ -214,8 +215,12 @@ func (d *KrakenDriver) SetColor(channel, mode string, colors []string) {
 		log.Fatalf("mode %s unsupported with channel %s", mode, channel)
 	}
 
-	steps := generateSteps(paletteFromColors(colors), mincolors, maxcolors, mode, ringonly)
+	palette, err := paletteFromColors(colors)
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	steps := generateSteps(*palette, mincolors, maxcolors, mode, ringonly)
 	for seq, step := range steps {
 		logoRed, logoGreen, logoBlue, _ := step[0].RGBA()
 
@@ -239,39 +244,32 @@ func (d *KrakenDriver) SetColor(channel, mode string, colors []string) {
 	}
 }
 
-func generateSteps(colors color.Palette, mincolors, maxcolors int, mode string, ringonly int) []color.Palette {
-	if len(colors) < mincolors {
-		log.Fatalf("not enough colors for mode %s, at least %d required", mode, mincolors)
-	} else if maxcolors == 0 {
-		if len(colors) > 0 {
-			log.Printf("too many colors for mode %s, none needed", mode)
-			colors = color.Palette{color.RGBA{0, 0, 0, 1}} // discard the input but ensure at least one step
+// SetSpeed sets a profile for a speed channel
+func (d *KrakenDriver) SetSpeed(channel, profile string) {
+	speedChannel, ok := speedChannels[channel]
+	if !ok {
+		log.Fatalf("channel %s not found", channel)
+	}
+
+	cbase, dmin, dmax := speedChannel[0], speedChannel[1], speedChannel[2]
+	p := interpolateProfile(normalizeProfile(parseProfile(profile), criticalTemp))
+
+	for i, profile := range p {
+		duty := profile[1]
+
+		if duty < dmin {
+			duty = dmin
+		} else if duty > dmax {
+			duty = dmax
 		}
-	} else if len(colors) > maxcolors {
-		log.Printf("too many colors for mode %s, dropping to %d", mode, maxcolors)
-		colors = colors[:maxcolors]
+
+		var buf []byte
+		buf = append(buf, 0x2)
+		buf = append(buf, 0x4d)
+		buf = append(buf, byte(cbase+i))
+		buf = append(buf, byte(profile[0]))
+		buf = append(buf, byte(duty))
+
+		d.Write(buf)
 	}
-
-	if len(colors) == 0 {
-		colors = color.Palette{color.RGBA{0, 0, 0, 1}}
-	}
-
-	var steps []color.Palette
-
-	if !strings.Contains(mode, "super") {
-		for colorNum := range colors {
-			var colorPalette color.Palette
-			for i := 0; i < totalLEDs; i++ {
-				colorPalette = append(colorPalette, colors[colorNum])
-			}
-			steps = append(steps, colorPalette)
-		}
-	} else if ringonly == 1 {
-		steps = append(steps, color.Palette{color.RGBA{0, 0, 0, 1}})
-		steps = append(steps, colors)
-	} else {
-		steps = append(steps, colors)
-	}
-
-	return steps
 }
