@@ -3,11 +3,12 @@ package driver
 import (
 	"encoding/hex"
 	"image/color"
-	"log"
 	"math"
 	"sort"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // SpeedProfile represents a collection of speed profiles
@@ -89,8 +90,21 @@ func parseProfile(s string) SpeedProfile {
 
 	for _, profile := range profiles {
 		p := strings.Split(profile, " ")
-		temp, _ := strconv.Atoi(p[0])
-		duty, _ := strconv.Atoi(p[1])
+
+		if len(p) < 2 {
+			log.Fatal("please provide a temperature & duty speed")
+		}
+
+		temp, err := strconv.Atoi(p[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		duty, err := strconv.Atoi(p[1])
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		d = append(d, []int{temp, duty})
 	}
 
