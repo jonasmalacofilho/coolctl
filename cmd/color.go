@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/spf13/cobra"
 
@@ -28,9 +27,6 @@ var colorCmd = &cobra.Command{
 		kraken := driver.NewKrakenDriver()
 		kraken.Connect()
 		kraken.SetColor(args[0], args[1], args[2:])
-
-		fmt.Printf("%s: %s %s", args[0], args[1], args[2:])
-		fmt.Println()
 	},
 }
 

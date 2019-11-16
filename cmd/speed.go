@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -39,9 +38,6 @@ var speedCmd = &cobra.Command{
 		kraken := driver.NewKrakenDriver()
 		kraken.Connect()
 		kraken.SetSpeed(args[0], profile)
-
-		fmt.Printf("%s: %s", args[0], profile)
-		fmt.Println()
 	},
 }
 
