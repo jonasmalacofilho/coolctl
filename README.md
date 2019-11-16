@@ -5,7 +5,7 @@
 [![Golang](https://img.shields.io/badge/Go-1.13-blue.svg)](https://golang.org)
 ![Linux](https://img.shields.io/badge/Supports-Linux-green.svg)
 
-coolctl (cooler control) is a (soon) cross-platform driver for NXZT Kraken X (X42, X52, X62 or X72).
+coolctl (cooler control) is a (soon) cross-platform driver for NZXT Kraken X (X42, X52, X62 or X72).
 
 Currently still WIP.
 

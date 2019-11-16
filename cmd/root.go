@@ -12,7 +12,7 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "coolctl",
-	Short: "A cross-platform driver for NXZT Kraken X (X42, X52, X62 or X72)",
+	Short: "A cross-platform driver for NZXT Kraken X (X42, X52, X62 or X72)",
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
