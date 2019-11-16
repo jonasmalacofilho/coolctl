@@ -75,3 +75,8 @@ func TestInterpolateProfile(t *testing.T) {
 	profile := parseProfile("20 25  35 25  50 55  60 100")
 	assert.Equal(t, SpeedProfile{{20, 25}, {22, 25}, {24, 25}, {26, 25}, {28, 25}, {30, 25}, {32, 25}, {34, 25}, {36, 27}, {38, 31}, {40, 35}, {42, 39}, {44, 43}, {46, 47}, {48, 51}, {50, 55}, {52, 64}, {54, 73}, {56, 82}, {58, 91}, {60, 100}}, interpolateProfile(profile))
 }
+
+func TestNormalizeInterpolateProfile(t *testing.T) {
+	profile := normalizeProfile(parseProfile("20 25  35 25  50 55  60 100"), criticalTemp)
+	assert.Equal(t, SpeedProfile{{20, 25}, {22, 25}, {24, 25}, {26, 25}, {28, 25}, {30, 25}, {32, 25}, {34, 25}, {36, 27}, {38, 31}, {40, 35}, {42, 39}, {44, 43}, {46, 47}, {48, 51}, {50, 55}, {52, 64}, {54, 73}, {56, 82}, {58, 91}, {60, 100}}, interpolateProfile(profile))
+}
