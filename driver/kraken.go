@@ -27,7 +27,7 @@ var (
 	config    = flag.Int("config", 1, "Configuration number to use with the device.")
 	iface     = flag.Int("interface", 0, "Interface to use on the device.")
 	alternate = flag.Int("alternate", 0, "Alternate setting to use on the interface.")
-	debug     = flag.Int("debug", 0, "Debug level for libusb.")
+	debug     = flag.Int("debug", 1, "Debug level for libusb.")
 	bufSize   = flag.Int("buffer_size", 0, "Number of buffer transfers, for data prefetching.")
 	timeout   = flag.Duration("timeout", 0, "Timeout for the command. 0 means infinite.")
 
