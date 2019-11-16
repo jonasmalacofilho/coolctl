@@ -85,8 +85,8 @@ func makeRange(min, max, steps int) []int {
 }
 
 func parseProfile(s string) SpeedProfile {
-	var d SpeedProfile
-	profiles := strings.Split(s, "  ")
+	d, profiles := SpeedProfile{}, strings.Split(s, "  ")
+
 	for _, profile := range profiles {
 		p := strings.Split(profile, " ")
 		temp, _ := strconv.Atoi(p[0])
@@ -115,10 +115,7 @@ func normalizeProfile(p SpeedProfile, temp int) SpeedProfile {
 }
 
 func interpolateProfile(p SpeedProfile) SpeedProfile {
-	var newProfile SpeedProfile
-	var duty int
-
-	lower, upper := p[0], p[len(p)-1]
+	newProfile, duty, lower, upper := SpeedProfile{}, 0, p[0], p[len(p)-1]
 
 	for _, stdtemp := range makeRange(20, 62, 2) {
 		for _, profile := range p {
